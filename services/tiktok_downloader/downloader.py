@@ -1,4 +1,6 @@
 import os
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -17,6 +19,7 @@ class Downloader:
     driver: Final[UC.Chrome]
     download_dir: Final[str]
     actions: Final[ActionChains]
+    executor: ThreadPoolExecutor = ThreadPoolExecutor(max_workers=3)
     user_agents: Final[list] = [
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36',
@@ -61,7 +64,7 @@ class Downloader:
             sleep(1)
 
 
-    def download_tiktok_video(self, video_link: str):
+    def _download_tiktok_video(self, video_link: str):
         try:
             self.driver.get('https://ssstik.io/')
             text_input_element = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[@class='relative u-fw']//input[@id='main_page_text']")))
@@ -82,7 +85,7 @@ class Downloader:
             self.driver.quit()
 
 
-    def download_instagram_video(self, video_link: str):
+    def _download_instagram_video(self, video_link: str):
         try:
             self.driver.get('https://sssinstagram.com/pt')
             sleep(2)
@@ -101,3 +104,14 @@ class Downloader:
         finally:
             self.driver.quit()
 
+
+    async def download_video_async(self, video_link: str):
+        loop = asyncio.get_running_loop()
+        if 'instagram' in video_link:
+            await loop.run_in_executor(self.executor, self._download_instagram_video, video_link)
+        elif 'tiktok' in video_link:
+            await loop.run_in_executor(self.executor, self._download_tiktok_video, video_link)
+        elif 'facebook' in video_link:
+            raise NotImplementedError()
+        else:
+            raise NotImplementedError()
